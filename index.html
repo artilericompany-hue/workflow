@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio.Flow — Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C1B1F; --ink-soft:#5B5854; --paper:#F3F1EA;
+    --blueprint:#3448D6; --blueprint-soft:#E3E6FB;
+    --amber:#E2932E; --amber-soft:#FBECD3;
+    --sage:#4E9A63; --sage-soft:#DFF1E4;
+    --brick:#D6553A; --brick-soft:#FBE1DA;
+    --line: rgba(28,27,31,0.10);
+    --card-shadow: 0 1px 2px rgba(28,27,31,0.05), 0 4px 14px rgba(28,27,31,0.05);
+    --card-shadow-hover: 0 8px 24px rgba(52,72,214,0.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:'Space Grotesk', sans-serif; color:var(--ink);
+    background:
+      radial-gradient(circle at 1px 1px, rgba(52,72,214,0.07) 1px, transparent 0) 0 0/26px 26px,
+      var(--paper);
+    min-height:100vh;
+  }
+  h1,h2,h3{font-family:'Fraunces', serif; font-weight:600; margin:0;}
+  button, input, select, textarea{font-family:'Space Grotesk', sans-serif;}
+  .app{display:flex; flex-direction:column; min-height:100vh;}
+
+  /* GATE */
+  .gate{position:fixed; inset:0; background:rgba(28,27,31,0.55); display:flex; align-items:center; justify-content:center; z-index:200; padding:16px;}
+  .gate-card{background:#fff; width:400px; max-width:100%; border-radius:20px; padding:34px 32px; box-shadow:0 24px 60px rgba(28,27,31,0.25);}
+  .gate-emoji{font-size:34px; margin-bottom:10px;}
+  .gate-card h2{font-size:23px; margin-bottom:4px;}
+  .gate-card p{font-size:13px; color:var(--ink-soft); margin:0 0 22px;}
+  .field-row{margin-bottom:14px;}
+  .field-row label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .field-row input, .field-row select{width:100%; padding:10px 13px; border:1.5px solid var(--line); border-radius:10px; font-size:13.5px;}
+  .gate-card button{width:100%; margin-top:8px; padding:12px; border:none; background:var(--blueprint); color:#fff; font-weight:700; font-size:13.5px; border-radius:12px; cursor:pointer;}
+
+  /* TOPBAR */
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:14px 26px; border-bottom:1px solid var(--line); background:rgba(243,241,234,0.9); backdrop-filter:blur(6px); position:sticky; top:0; z-index:20;}
+  .brand{font-family:'Fraunces', serif; font-size:21px; font-weight:700; font-style:italic; display:flex; align-items:center; gap:6px;}
+  .brand span{color:var(--blueprint);}
+  .who{display:flex; align-items:center; gap:10px; font-size:13px;}
+  .who .badge{background:var(--blueprint-soft); color:var(--blueprint); padding:6px 13px; border-radius:999px; font-weight:700; font-size:12.5px;}
+  .who button{background:#fff; border:1.5px solid var(--line); padding:7px 13px; border-radius:999px; font-size:12px; cursor:pointer; color:var(--ink-soft); font-weight:600;}
+  .who button:hover{color:var(--ink); border-color:var(--blueprint);}
+
+  .shell{display:flex; flex:1; min-height:0;}
+  .sidebar{width:216px; flex-shrink:0; padding:20px 12px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:3px;}
+  .nav-item{text-align:left; font-size:13.5px; font-weight:600; color:var(--ink-soft); background:transparent; border:none; padding:10px 13px; cursor:pointer; border-radius:11px; display:flex; align-items:center; gap:9px;}
+  .nav-item:hover{background:rgba(52,72,214,0.06); color:var(--ink);}
+  .nav-item.active{background:var(--blueprint); color:#fff;}
+  .sidebar-note{margin-top:auto; font-size:11px; color:var(--ink-soft); padding:12px; border-top:1px solid var(--line); line-height:1.5;}
+
+  .content{flex:1; padding:30px 38px; overflow-y:auto;}
+  .view{display:none;} .view.active{display:block;}
+  .view-head{margin-bottom:24px; display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap;}
+  .view-head h1{font-size:26px;} .view-head p{margin:6px 0 0; color:var(--ink-soft); font-size:13.5px;}
+  .btn-primary{background:var(--blueprint); color:#fff; border:none; padding:11px 19px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-ghost{background:#fff; border:1.5px solid var(--line); padding:9px 16px; border-radius:999px; font-size:12.5px; cursor:pointer; color:var(--ink-soft); font-weight:600;}
+  .btn-small{background:var(--blueprint-soft); color:var(--blueprint); border:none; padding:7px 12px; border-radius:999px; font-size:11.5px; font-weight:700; cursor:pointer;}
+
+  .kpi-row{display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;}
+  .kpi{flex:1; min-width:140px; background:#fff; border-radius:16px; padding:16px 18px; box-shadow:var(--card-shadow);}
+  .kpi .num{font-family:'Fraunces'; font-size:28px; font-weight:700;} .kpi .label{font-size:11.5px; color:var(--ink-soft); margin-top:3px;}
+
+  .form-panel{background:#fff; border-radius:18px; padding:22px 24px; margin-bottom:24px; display:none; box-shadow:var(--card-shadow);}
+  .form-panel.show{display:block;}
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;}
+  .form-grid .full{grid-column:1/-1;}
+  .form-panel label{display:block; font-size:11px; font-weight:700; color:var(--ink-soft); margin-bottom:5px;}
+  .form-panel input, .form-panel select, .form-panel textarea{width:100%; padding:9px 11px; border:1.5px solid var(--line); border-radius:10px; font-size:13px;}
+  .form-panel textarea{min-height:64px; resize:vertical;}
+  .form-actions{display:flex; gap:8px;}
+  .type-extra{display:none;} .type-extra.show{display:block;}
+
+  .board-scroll{display:flex; gap:14px; overflow-x:auto; padding-bottom:6px;}
+  .col{min-width:230px; flex:1;}
+  .col-head{font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-bottom:12px; display:flex; justify-content:space-between; padding:0 4px;}
+  .col-head .count{background:#fff; box-shadow:var(--card-shadow); color:var(--ink); border-radius:999px; padding:1px 8px; font-size:11px;}
+  .card{background:#fff; border-radius:14px; padding:13px 14px; margin-bottom:10px; font-size:13px; cursor:pointer; box-shadow:var(--card-shadow); border-top:3px solid var(--blueprint); transition:transform .12s, box-shadow .12s;}
+  .card:hover{transform:translateY(-2px); box-shadow:var(--card-shadow-hover);}
+  .card.tp-story{border-top-color:var(--amber);} .card.tp-kaos{border-top-color:var(--sage);}
+  .card .title{font-weight:700; margin-bottom:8px; line-height:1.35;}
+  .card .meta{display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--ink-soft);}
+  .tag{background:var(--blueprint-soft); color:var(--blueprint); padding:2px 8px; border-radius:999px; font-size:10.5px; font-weight:700;}
+  .card .advance{margin-top:10px; width:100%; padding:7px; font-size:11px; border:none; background:var(--paper); border-radius:999px; cursor:pointer; color:var(--ink-soft); font-weight:700;}
+  .card .advance:hover{background:var(--blueprint-soft); color:var(--blueprint);}
+  .empty-col{font-size:12px; color:var(--ink-soft); font-style:italic; padding:6px 4px;}
+
+  .overlay{position:fixed; inset:0; background:rgba(28,27,31,0.5); display:none; align-items:center; justify-content:center; z-index:100; padding:20px;}
+  .overlay.show{display:flex;}
+  .modal{background:#fff; width:500px; max-width:100%; max-height:88vh; overflow-y:auto; border-radius:20px; padding:28px 30px; position:relative; box-shadow:0 30px 70px rgba(28,27,31,0.3);}
+  .modal .close{position:absolute; top:16px; right:18px; background:var(--paper); border:none; width:30px; height:30px; border-radius:50%; font-size:17px; cursor:pointer; color:var(--ink-soft);}
+  .modal h3{font-size:19px; margin-bottom:4px;}
+  .type-tag{display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; margin-bottom:14px;}
+  .type-tag.feed{background:var(--blueprint-soft); color:var(--blueprint);}
+  .type-tag.story{background:var(--amber-soft); color:var(--amber);}
+  .type-tag.kaos{background:var(--sage-soft); color:var(--sage);}
+  .field{margin-bottom:16px;} .field .k{font-size:11px; color:var(--ink-soft); font-weight:700; margin-bottom:4px;} .field .v{font-size:13.5px; line-height:1.6; white-space:pre-wrap;}
+  .ref-images{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+  .ref-images .thumb{position:relative;}
+  .ref-images img{width:96px; height:74px; object-fit:cover; border-radius:10px; display:block;}
+  .ref-images .rm{position:absolute; top:-6px; right:-6px; background:var(--brick); color:#fff; border:none; width:18px; height:18px; border-radius:50%; font-size:11px; cursor:pointer;}
+  .ref-add, .comment-add{display:flex; gap:6px;}
+  .ref-add input, .comment-add input{flex:1; font-size:12px; padding:9px 11px; border:1.5px solid var(--line); border-radius:10px;}
+  .ref-add button, .comment-add button{font-size:12px; font-weight:700; padding:9px 14px; border:none; background:var(--blueprint); color:#fff; border-radius:10px; cursor:pointer;}
+  .ref-hint{font-size:11px; color:var(--ink-soft); margin-top:6px;}
+  .comment{padding:9px 0; border-bottom:1px solid var(--line); font-size:12.5px;}
+  .comment .author{font-weight:700; font-size:11.5px;} .comment .time{color:var(--ink-soft); font-size:10.5px;}
+  .status-select{padding:7px 10px; border:1.5px solid var(--line); border-radius:999px; font-size:12px; font-weight:600;}
+  .slide-card{background:var(--paper); border-radius:12px; padding:10px 12px; margin-bottom:8px; font-size:12.5px;}
+  .slide-card b{font-size:11px; color:var(--ink-soft);}
+  .date-badge{display:inline-flex; align-items:center; gap:6px; background:var(--amber-soft); color:var(--amber); padding:6px 12px; border-radius:999px; font-weight:700; font-size:12.5px; margin-bottom:14px;}
+  .mini-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:8px;}
+  .mini-grid input{padding:7px 9px; border:1.5px solid var(--line); border-radius:8px; font-size:11.5px;}
+
+  .ops-panel{margin-bottom:24px; background:#fff; border-radius:18px; padding:20px 22px; box-shadow:var(--card-shadow);}
+  .ops-panel h2{font-size:16px; margin-bottom:4px;} .ops-panel .sub{font-size:12px; color:var(--ink-soft); margin-bottom:12px;}
+  .ops-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+  .opslist{display:flex; flex-direction:column;}
+  .opitem{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:11px 0; border-bottom:1px solid var(--line);}
+  .opitem:last-child{border-bottom:none;}
+  .opitem .txt{font-size:13px; flex:1; cursor:pointer;} .opitem .who{font-size:11px; color:var(--ink-soft); margin-top:2px;}
+  .status-badge{border:none; font-size:10.5px; font-weight:700; padding:6px 12px; border-radius:999px; cursor:pointer; white-space:nowrap;}
+  .status-badge.belum{background:var(--brick-soft); color:var(--brick);} .status-badge.selesai{background:var(--sage-soft); color:var(--sage);}
+
+  .streak-row{display:flex; align-items:center; gap:16px; margin-bottom:8px;}
+  .streak-num{font-family:'Fraunces'; font-size:30px; font-weight:700; color:var(--sage);}
+  .progress-track{flex:1; height:10px; background:var(--paper); border-radius:999px; overflow:hidden;}
+  .progress-fill{height:100%; background:var(--sage); border-radius:999px; transition:width .3s;}
+
+  .report-form{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+  .report-form .grp{background:var(--paper); border-radius:14px; padding:16px;}
+  .report-form .grp h3{font-size:14px; margin-bottom:10px;}
+  .report-form .fld{margin-bottom:10px;}
+  .report-form label{display:block; font-size:11px; font-weight:700; color:var(--ink-soft); margin-bottom:4px;}
+  .report-form input, .report-form textarea{width:100%; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; font-size:12.5px;}
+
+  .loading{padding:60px 0; text-align:center; color:var(--ink-soft); font-size:13px;}
+  ::-webkit-scrollbar{height:8px; width:8px;} ::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-emoji">✨</div>
+    <h2>Masuk ke Studio.Flow</h2>
+    <p>Pilih peranmu untuk mulai. Tidak perlu password — cukup untuk tim internal.</p>
+    <div class="field-row"><label>Nama</label><input type="text" id="gateName" placeholder="mis. Riko"></div>
+    <div class="field-row">
+      <label>Peran</label>
+      <select id="gateRole">
+        <option value="owner">Owner</option>
+        <option value="admin">Admin Sosmed & Shopee</option>
+        <option value="designer">Desainer Grafis</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label>PIN peran (kosongkan jika Owner belum mengatur PIN)</label>
+      <input type="password" id="gatePin" placeholder="••••">
+    </div>
+    <button onclick="loginUser()">Masuk ke Workspace</button>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none;">
+  <header class="topbar">
+    <div class="brand">Studio<span>.</span>Flow</div>
+    <div class="who">
+      <span class="badge" id="whoBadge"></span>
+      <button onclick="refreshNow()">↻ Segarkan</button>
+      <button onclick="logoutUser()">Ganti peran</button>
+    </div>
+  </header>
+  <div class="shell">
+    <nav class="sidebar">
+      <button class="nav-item active" data-view="dashboard">🏠 Dashboard</button>
+      <button class="nav-item" data-view="tasks">🗂️ Papan Tugas</button>
+      <button class="nav-item" data-view="adminops">✅ Tugas Admin</button>
+      <button class="nav-item" data-view="report">📊 Laporan Bulanan</button>
+      <div class="sidebar-note">Data di workspace ini dibagikan ke semua orang yang membuka link ini.</div>
+    </nav>
+    <main class="content">
+
+      <section id="view-dashboard" class="view active">
+        <div class="view-head"><div><h1>Ringkasan</h1><p>Dihitung langsung dari Papan Tugas & Tugas Admin.</p></div></div>
+        <div class="ops-panel" id="pinSettingsPanel" style="display:none;">
+          <h2>🔐 Atur PIN Tim (khusus Owner)</h2>
+          <div class="sub">Opsional — tambah lapisan verifikasi saat memilih peran login. Bagikan tiap PIN hanya ke orang yang tepat lewat chat pribadi.</div>
+          <div class="mini-grid" style="grid-template-columns:1fr 1fr 1fr;">
+            <input id="pinOwner" placeholder="PIN Owner">
+            <input id="pinAdmin" placeholder="PIN Admin">
+            <input id="pinDesigner" placeholder="PIN Desainer">
+          </div>
+          <button class="btn-small" onclick="savePins()">Simpan PIN</button>
+        </div>
+        <div class="kpi-row" id="kpiRow"></div>
+        <div class="ops-grid">
+          <div class="ops-panel"><h2>Butuh perhatian</h2><div class="opslist" id="attentionList"></div></div>
+          <div class="ops-panel"><h2>Belum dibalas / diupload</h2><div class="opslist" id="opsAttentionList"></div></div>
+        </div>
+      </section>
+
+      <section id="view-tasks" class="view">
+        <div class="view-head">
+          <div><h1>Papan Tugas Desainer</h1><p>Feed per slide, Story per tanggal, Kaos depan/belakang — klik kartu untuk detail.</p></div>
+          <button class="btn-primary" onclick="toggleForm()">+ Brief Baru</button>
+        </div>
+        <div class="form-panel" id="taskForm">
+          <div class="form-grid">
+            <div><label>Judul</label><input id="fTitle" placeholder='mis. "Promo Payday"'></div>
+            <div><label>Jenis</label><select id="fType" onchange="updateFormExtra()"><option value="Feed">Feed Instagram</option><option value="Story">Story Instagram</option><option value="Kaos">Desain Kaos</option></select></div>
+            <div><label>Ditugaskan ke (desainer)</label><input id="fAssignee" placeholder="mis. Riko"></div>
+            <div><label>Deadline</label><input id="fDeadline" placeholder="mis. 12 Sep 2026"></div>
+          </div>
+          <div id="extraFeed" class="type-extra show">
+            <div class="form-grid">
+              <div class="full"><label>Format</label><input id="fFormat" placeholder='mis. "Carousel 5 Slide"'></div>
+              <div class="full"><label>Brief umum</label><textarea id="fText" placeholder="Gaya, layout, tone..."></textarea></div>
+            </div>
+          </div>
+          <div id="extraStory" class="type-extra">
+            <div class="form-grid">
+              <div><label>Tanggal</label><input id="fTanggal" placeholder="mis. 17 Sep 2026"></div>
+              <div><label>Momentum/Peringatan</label><input id="fMomentum" placeholder="mis. Hari Palang Merah"></div>
+              <div class="full"><label>Instruksi visual</label><textarea id="fVisual" placeholder="Bebas tapi sesuai konteks..."></textarea></div>
+            </div>
+          </div>
+          <div id="extraKaos" class="type-extra">
+            <div class="form-grid">
+              <div class="full"><label>Bagian depan</label><textarea id="fDepan" placeholder="Instruksi desain bagian depan..."></textarea></div>
+              <div class="full"><label>Bagian belakang</label><textarea id="fBelakang" placeholder="Instruksi desain bagian belakang..."></textarea></div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="submitTask()">Simpan Brief</button>
+            <button class="btn-ghost" onclick="toggleForm()">Batal</button>
+          </div>
+        </div>
+        <div class="board-scroll" id="board"></div>
+      </section>
+
+      <section id="view-adminops" class="view">
+        <div class="view-head"><div><h1>Tugas Admin</h1><p>Konten siap upload, interaksi Instagram & Shopee, plus streak naikkan produk.</p></div></div>
+
+        <div class="ops-panel">
+          <h2>🔥 Streak naikkan produk</h2>
+          <div class="sub">Konsisten naikkan produk tiap hari bikin toko lebih kelihatan.</div>
+          <div class="streak-row">
+            <div class="streak-num" id="streakNum">0</div>
+            <div class="progress-track"><div class="progress-fill" id="streakBar" style="width:0%"></div></div>
+            <button class="btn-small" id="streakBtn" onclick="markStreak()">+ Tandai hari ini</button>
+          </div>
+        </div>
+
+        <div class="ops-panel">
+          <h2>Konten siap diupload</h2>
+          <div class="sub">Hanya brief yang sudah ditugaskan Owner ke Admin.</div>
+          <div class="opslist" id="uploadList"></div>
+        </div>
+        <div class="ops-grid">
+          <div class="ops-panel"><h2>Interaksi Instagram</h2><div class="sub">Balas komentar & DM masuk</div><div class="opslist" id="igList"></div></div>
+          <div class="ops-panel"><h2>Interaksi Shopee</h2><div class="sub">Ulasan & chat pelanggan</div><div class="opslist" id="shopeeList"></div></div>
+        </div>
+      </section>
+
+      <section id="view-report" class="view">
+        <div class="view-head"><div><h1>Laporan Bulanan</h1><p>Ringkasan performa Shopee & Instagram bulan ini — bukan spreadsheet, cukup yang penting.</p></div></div>
+        <div class="report-form">
+          <div class="grp">
+            <h3>🛍️ Shopee</h3>
+            <div class="fld"><label>Produk masuk keranjang</label><input id="rKeranjang" type="number"></div>
+            <div class="fld"><label>Produk terjual</label><input id="rTerjual" type="number"></div>
+            <div class="fld"><label>Ulasan masuk</label><input id="rUlasan" type="number"></div>
+          </div>
+          <div class="grp">
+            <h3>📸 Instagram</h3>
+            <div class="fld"><label>Komentar bulan ini</label><input id="rKomentar" type="number"></div>
+            <div class="fld"><label>DM bulan ini</label><input id="rDm" type="number"></div>
+            <div class="fld"><label>Follower awal → akhir</label>
+              <div style="display:flex; gap:8px;"><input id="rFolAwal" type="number" placeholder="Awal"><input id="rFolAkhir" type="number" placeholder="Akhir"></div>
+            </div>
+          </div>
+          <div class="grp full" style="grid-column:1/-1;">
+            <h3>📝 Catatan & Rekomendasi</h3>
+            <textarea id="rCatatan" style="min-height:80px;" placeholder="Insight atau ide untuk bulan depan..."></textarea>
+          </div>
+        </div>
+        <div class="form-actions" style="margin-top:16px;">
+          <button class="btn-primary" onclick="saveReport()">Simpan Laporan</button>
+        </div>
+        <div id="reportSummary" style="margin-top:26px;"></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div class="overlay" id="briefOverlay">
+  <div class="modal">
+    <button class="close" onclick="closeBrief()">&times;</button>
+    <span class="type-tag" id="briefType">Tipe</span>
+    <h3 id="briefTitle">Judul Brief</h3>
+    <div class="field">
+      <div class="k">Status</div>
+      <select class="status-select" id="briefStatusSelect" onchange="changeStatusFromModal()"></select>
+    </div>
+    <div class="field"><div class="k">Deadline</div><div class="v" id="briefDeadline"></div></div>
+
+    <div id="mFeed" class="type-extra">
+      <div class="field"><div class="k">Format</div><div class="v" id="mFormat"></div></div>
+      <div class="field"><div class="k">Brief umum</div><div class="v" id="mBriefUmum"></div></div>
+      <div class="field">
+        <div class="k">Slide</div>
+        <div id="slideList"></div>
+        <div class="mini-grid">
+          <input id="sBackground" placeholder="Background/visual">
+          <input id="sBesar" placeholder="Teks besar">
+          <input id="sKecil" placeholder="Teks kecil">
+        </div>
+        <button class="btn-small" onclick="addSlide()">+ Tambah slide</button>
+      </div>
+      <div class="field">
+        <div class="k">🔒 Caption (khusus Admin)</div>
+        <div class="mini-grid" style="grid-template-columns:1fr 1fr;">
+          <input id="capHook" placeholder="Hook">
+          <input id="capMiddle" placeholder="Middle">
+          <input id="capSoft" placeholder="Soft selling">
+          <input id="capCta" placeholder="CTA">
+        </div>
+        <button class="btn-small" onclick="saveCaption()">Simpan caption</button>
+      </div>
+    </div>
+
+    <div id="mStory" class="type-extra">
+      <div class="date-badge">📅 <span id="mTanggalMomentum"></span></div>
+      <div class="field"><div class="k">Instruksi visual</div><div class="v" id="mVisual"></div></div>
+    </div>
+
+    <div id="mKaos" class="type-extra">
+      <div class="field"><div class="k">Bagian depan</div><div class="v" id="mDepan"></div></div>
+      <div class="field"><div class="k">Bagian belakang</div><div class="v" id="mBelakang"></div></div>
+    </div>
+
+    <div class="field">
+      <div class="k">Referensi visual (pratinjau dari link, tanpa upload)</div>
+      <div class="ref-images" id="briefImages"></div>
+      <div class="ref-add">
+        <input type="text" id="refLinkInput" placeholder="Tempel link gambar">
+        <button onclick="addRefImage()">Tambah</button>
+      </div>
+      <div class="ref-hint">Gambar tetap tersimpan di layanan aslinya — ini hanya pratinjau.</div>
+    </div>
+    <div class="field">
+      <div class="k">Komentar</div>
+      <div id="briefComments"></div>
+      <div class="comment-add" style="margin-top:8px;"><input type="text" id="commentInput" placeholder="Tulis komentar..."><button onclick="addComment()">Kirim</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAk6rpvGQAQK8Xam5MZovTTqwBwjtSTfvw",
+    authDomain: "artilerian-workflow.firebaseapp.com",
+    databaseURL: "https://artilerian-workflow-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "artilerian-workflow",
+    storageBucket: "artilerian-workflow.firebasestorage.app",
+    messagingSenderId: "772958356381",
+    appId: "1:772958356381:web:414f6a7a6e7d878ef0a574"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+</script>
+<script>
+  const COLUMNS = ['Brief Baru','Dikerjakan','Review','Revisi','Disetujui','Ditugaskan ke Admin','Selesai'];
+  const TYPE_CLASS = {Feed:'', Story:'tp-story', Kaos:'tp-kaos'};
+  const TYPE_LABEL = {Feed:'Feed', Story:'Story', Kaos:'Kaos'};
+  let currentUser = null, state = null, currentTaskId = null;
+
+  function daysInCurrentMonth(){ const d=new Date(); return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); }
+  function todayDay(){ return new Date().getDate(); }
+
+  function getSeedState(){
+    return {
+      tasks:[
+        {id:'t1', title:'Promo Ongkir Gratis', type:'Story', assignee:'Riko', status:'Brief Baru', deadline:'6 Sep 2026', tanggal:'6 Sep 2026', momentum:'Promo mingguan', visual:'3 slide: hook ongkir gratis, syarat singkat, tombol swipe ke Shopee.', images:['https://picsum.photos/seed/ongkirdraft/300/220'], comments:[]},
+        {id:'t2', title:'Merch Ulang Tahun Toko', type:'Kaos', assignee:'Belum ditugaskan', status:'Brief Baru', deadline:'10 Sep 2026', bagianDepan:'Logo besar minimalis di tengah dada.', bagianBelakang:'Tagline toko + tanggal ulang tahun, sablon 1-2 warna.', images:['https://picsum.photos/seed/kaosref1/300/220','https://picsum.photos/seed/kaosref2/300/220'], comments:[]},
+        {id:'t3', title:'Flash Sale 9.9', type:'Feed', assignee:'Riko', status:'Dikerjakan', deadline:'5 Sep 2026', format:'Carousel 5 Slide', text:'Tema berani, kontras tinggi, biru + kuning. Layout logo sama seperti feed sebelumnya.', slides:[{background:'Overlay diskon besar', teksBesar:'Flash Sale 9.9', teksKecil:'Diskon hingga 50%'}], caption:{hook:'',middle:'',softSelling:'',cta:''}, images:['https://picsum.photos/seed/flashsaleref/300/220'], comments:[]},
+        {id:'t4', title:'Tips Perawatan Produk', type:'Feed', assignee:'Dimas', status:'Dikerjakan', deadline:'8 Sep 2026', format:'Carousel 5 Slide', text:'Carousel edukatif, gaya santai, soft-selling di slide terakhir.', slides:[], caption:{hook:'',middle:'',softSelling:'',cta:''}, images:[], comments:[]},
+        {id:'t5', title:'Panen Raya', type:'Feed', assignee:'Owner', status:'Review', deadline:'Menunggu review', format:'Feed 1 Slide', text:'Menonjolkan bahan baku lokal, foto latar kebun/alam.', slides:[], caption:{hook:'',middle:'',softSelling:'',cta:''}, images:[], comments:[]},
+        {id:'t6', title:'Katalog Produk Baru', type:'Feed', assignee:'Dimas', status:'Revisi', deadline:'1 catatan dari Owner', format:'Carousel', text:'Perbesar foto produk utama slide 1, tambahkan harga tiap slide.', slides:[], caption:{hook:'',middle:'',softSelling:'',cta:''}, images:[], comments:[]},
+        {id:'t7', title:'Konten Edukasi Baru', type:'Feed', assignee:'Dimas', status:'Disetujui', deadline:'Menunggu ditugaskan', format:'Carousel', text:'Sudah disetujui Owner.', slides:[], caption:{hook:'',middle:'',softSelling:'',cta:''}, images:[], comments:[]},
+        {id:'t8', title:'Tips Perawatan (batch lalu)', type:'Feed', assignee:'Dimas', status:'Selesai', deadline:'Selesai', format:'Carousel', text:'-', slides:[], caption:{hook:'',middle:'',softSelling:'',cta:''}, images:[], comments:[]}
+      ],
+      ops:{
+        upload:[
+          {id:'u1', text:'Promo Ongkir Gratis (Story)', who:'Desain oleh Riko · ditugaskan Owner', done:false},
+          {id:'u2', text:'Tips Perawatan Produk (Feed)', who:'Desain oleh Dimas · ditugaskan Owner', done:true}
+        ],
+        ig:[
+          {id:'ig1', text:'Komentar: "Kak ini ready stock warna hitam?"', who:'Feed — Flash Sale 9.9', done:false},
+          {id:'ig2', text:'DM: "Ongkirnya berapa kak ke Malang?"', who:'Direct Message', done:false}
+        ],
+        shopee:[
+          {id:'sp1', text:'★★★★☆ "Bagus tapi pengiriman agak lama"', who:'Ulasan — Kaos Polos Premium', done:false},
+          {id:'sp2', text:'Chat: "Bisa COD kak?"', who:'Chat pelanggan', done:true}
+        ],
+        streak:[]
+      },
+      report:{periode:'', pelapor:'', keranjang:'', terjual:'', ulasan:'', komentar:'', dm:'', folAwal:'', folAkhir:'', catatan:''},
+      security:{ownerPin:'', adminPin:'', designerPin:''}
+    };
+  }
+
+  async function loadState(){
+    try{
+      const snap = await db.ref('studioflowState').once('value');
+      if(snap.exists()) return snap.val();
+      const seed = getSeedState();
+      await db.ref('studioflowState').set(seed);
+      return seed;
+    }catch(e){ console.error('Gagal memuat dari Firebase', e); return getSeedState(); }
+  }
+  async function saveState(){
+    try{ await db.ref('studioflowState').set(state); }
+    catch(e){ console.error('Gagal menyimpan ke Firebase', e); alert('Gagal menyimpan perubahan — cek koneksi internet.'); }
+  }
+
+  // Listener real-time: begitu ada yang berubah di Firebase (dari device manapun), tampilan ikut update otomatis.
+  // Field yang sedang diketik (activeElement) dilindungi supaya tidak ketimpa saat orang lain menyimpan.
+  db.ref('studioflowState').on('value', (snap)=>{
+    if(snap.exists()){ state = snap.val(); }
+    if(!currentUser) return;
+    const modalOpen = document.getElementById('briefOverlay').classList.contains('show');
+    const formOpen = document.getElementById('taskForm').classList.contains('show');
+    if(!modalOpen && !formOpen) renderAll();
+  }, (err)=>{ console.error('Firebase listener error', err); });
+
+  function loginUser(){
+    const name = document.getElementById('gateName').value.trim() || 'Tanpa Nama';
+    const role = document.getElementById('gateRole').value;
+    const pinInput = document.getElementById('gatePin').value.trim();
+    const pinKey = {owner:'ownerPin', admin:'adminPin', designer:'designerPin'}[role];
+    const requiredPin = (state && state.security) ? state.security[pinKey] : '';
+    if(requiredPin && requiredPin !== pinInput){
+      alert('PIN salah untuk peran ini. Tanya Owner kalau lupa PIN-nya.');
+      return;
+    }
+    currentUser = {name, role};
+    document.getElementById('gate').style.display='none';
+    document.getElementById('app').style.display='flex';
+    const roleLabel = {owner:'Owner', admin:'Admin Sosmed & Shopee', designer:'Desainer Grafis'}[role];
+    document.getElementById('whoBadge').textContent = name+' · '+roleLabel;
+    init();
+  }
+  function logoutUser(){ document.getElementById('gate').style.display='flex'; document.getElementById('app').style.display='none'; }
+
+  // State akan terisi otomatis oleh listener Firebase di atas begitu koneksi tersambung.
+
+  async function init(){
+    document.querySelectorAll('.nav-item').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+        document.getElementById('view-'+btn.dataset.view).classList.add('active');
+      });
+    });
+    updateFormExtra();
+    document.getElementById('board').innerHTML = '<div class="loading">Menyambungkan ke Firebase…</div>';
+    if(!state) state = await loadState();
+    renderAll();
+  }
+  async function refreshNow(){ state = await loadState(); renderAll(); }
+
+  function renderAll(){ renderBoard(); renderOps(); renderDashboard(); renderReportSummary(); renderPinSettings(); }
+
+  function renderPinSettings(){
+    const panel = document.getElementById('pinSettingsPanel');
+    if(!currentUser || currentUser.role !== 'owner'){ panel.style.display='none'; return; }
+    panel.style.display='block';
+    if(!state.security) state.security = {ownerPin:'', adminPin:'', designerPin:''};
+    const oInp=document.getElementById('pinOwner'), aInp=document.getElementById('pinAdmin'), dInp=document.getElementById('pinDesigner');
+    if(document.activeElement!==oInp) oInp.value = state.security.ownerPin || '';
+    if(document.activeElement!==aInp) aInp.value = state.security.adminPin || '';
+    if(document.activeElement!==dInp) dInp.value = state.security.designerPin || '';
+  }
+  async function savePins(){
+    if(!state.security) state.security = {};
+    state.security.ownerPin = document.getElementById('pinOwner').value.trim();
+    state.security.adminPin = document.getElementById('pinAdmin').value.trim();
+    state.security.designerPin = document.getElementById('pinDesigner').value.trim();
+    await saveState();
+    alert('PIN tersimpan. Bagikan ke orang yang tepat lewat chat pribadi.');
+  }
+
+  function updateFormExtra(){
+    const t = document.getElementById('fType').value;
+    document.getElementById('extraFeed').classList.toggle('show', t==='Feed');
+    document.getElementById('extraStory').classList.toggle('show', t==='Story');
+    document.getElementById('extraKaos').classList.toggle('show', t==='Kaos');
+  }
+
+  function renderBoard(){
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    COLUMNS.forEach(col=>{
+      const tasks = state.tasks.filter(t=>t.status===col);
+      const colEl = document.createElement('div'); colEl.className='col';
+      colEl.innerHTML = `<div class="col-head">${col} <span class="count">${tasks.length}</span></div>`;
+      if(tasks.length===0) colEl.innerHTML += '<div class="empty-col">Kosong</div>';
+      tasks.forEach(t=>{
+        const nextIdx = COLUMNS.indexOf(t.status)+1;
+        const nextLabel = nextIdx < COLUMNS.length ? COLUMNS[nextIdx] : null;
+        const card = document.createElement('div');
+        card.className = 'card '+(TYPE_CLASS[t.type]||'');
+        card.innerHTML = `
+          <div class="title">${t.title}</div>
+          <div class="meta"><span class="tag">${TYPE_LABEL[t.type]}</span><span>${t.assignee}</span></div>
+          ${nextLabel ? `<button class="advance">→ ${nextLabel}</button>` : ''}
+        `;
+        card.querySelector('.title').onclick = ()=>openBrief(t.id);
+        card.querySelector('.meta').onclick = ()=>openBrief(t.id);
+        const adv = card.querySelector('.advance');
+        if(adv) adv.onclick = (e)=>{ e.stopPropagation(); advanceTask(t.id); };
+        colEl.appendChild(card);
+      });
+      board.appendChild(colEl);
+    });
+  }
+
+  async function advanceTask(id){
+    const t = state.tasks.find(x=>x.id===id);
+    const idx = COLUMNS.indexOf(t.status);
+    const next = COLUMNS[idx+1];
+    if(!next) return;
+    if(next === 'Ditugaskan ke Admin'){
+      let adminName='Sari'; try{ adminName = window.prompt('Tugaskan ke Admin:', 'Sari') || 'Sari'; }catch(e){}
+      t.assignee = adminName;
+    }
+    t.status = next;
+    await saveState(); renderAll();
+  }
+
+  function toggleForm(){ document.getElementById('taskForm').classList.toggle('show'); }
+  async function submitTask(){
+    const title = document.getElementById('fTitle').value.trim();
+    if(!title){ alert('Judul brief wajib diisi.'); return; }
+    const type = document.getElementById('fType').value;
+    const base = {
+      id:'t'+Date.now(), title, type,
+      assignee:document.getElementById('fAssignee').value.trim() || 'Belum ditugaskan',
+      status:'Brief Baru',
+      deadline:document.getElementById('fDeadline').value.trim() || '-',
+      images:[], comments:[]
+    };
+    if(type==='Feed'){
+      base.format = document.getElementById('fFormat').value.trim() || '-';
+      base.text = document.getElementById('fText').value.trim() || '-';
+      base.slides = []; base.caption = {hook:'',middle:'',softSelling:'',cta:''};
+    } else if(type==='Story'){
+      base.tanggal = document.getElementById('fTanggal').value.trim() || '-';
+      base.momentum = document.getElementById('fMomentum').value.trim() || '-';
+      base.visual = document.getElementById('fVisual').value.trim() || '-';
+    } else {
+      base.bagianDepan = document.getElementById('fDepan').value.trim() || '-';
+      base.bagianBelakang = document.getElementById('fBelakang').value.trim() || '-';
+    }
+    state.tasks.unshift(base);
+    await saveState();
+    ['fTitle','fAssignee','fDeadline','fFormat','fText','fTanggal','fMomentum','fVisual','fDepan','fBelakang'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    toggleForm(); renderAll();
+  }
+
+  function openBrief(id){
+    currentTaskId = id;
+    const t = state.tasks.find(x=>x.id===id);
+    document.getElementById('briefType').textContent = TYPE_LABEL[t.type];
+    document.getElementById('briefType').className = 'type-tag '+t.type.toLowerCase();
+    document.getElementById('briefTitle').textContent = t.title;
+    document.getElementById('briefDeadline').textContent = t.deadline;
+    const sel = document.getElementById('briefStatusSelect');
+    sel.innerHTML = COLUMNS.map(c=>`<option value="${c}" ${c===t.status?'selected':''}>${c}</option>`).join('');
+
+    document.getElementById('mFeed').classList.toggle('show', t.type==='Feed');
+    document.getElementById('mStory').classList.toggle('show', t.type==='Story');
+    document.getElementById('mKaos').classList.toggle('show', t.type==='Kaos');
+
+    if(t.type==='Feed'){
+      document.getElementById('mFormat').textContent = t.format||'-';
+      document.getElementById('mBriefUmum').textContent = t.text||'-';
+      renderSlides(t.slides||[]);
+      const c = t.caption||{}; document.getElementById('capHook').value=c.hook||''; document.getElementById('capMiddle').value=c.middle||''; document.getElementById('capSoft').value=c.softSelling||''; document.getElementById('capCta').value=c.cta||'';
+    } else if(t.type==='Story'){
+      document.getElementById('mTanggalMomentum').textContent = (t.tanggal||'-')+' — '+(t.momentum||'-');
+      document.getElementById('mVisual').textContent = t.visual||'-';
+    } else if(t.type==='Kaos'){
+      document.getElementById('mDepan').textContent = t.bagianDepan||'-';
+      document.getElementById('mBelakang').textContent = t.bagianBelakang||'-';
+    }
+    renderRefImages(t.images||[]);
+    renderComments(t.comments||[]);
+    document.getElementById('briefOverlay').classList.add('show');
+  }
+  function closeBrief(){ document.getElementById('briefOverlay').classList.remove('show'); currentTaskId=null; }
+  document.getElementById('briefOverlay').addEventListener('click', e=>{ if(e.target.id==='briefOverlay') closeBrief(); });
+
+  async function changeStatusFromModal(){
+    const t = state.tasks.find(x=>x.id===currentTaskId);
+    t.status = document.getElementById('briefStatusSelect').value;
+    await saveState(); renderAll();
+  }
+
+  function renderSlides(slides){
+    const wrap = document.getElementById('slideList'); wrap.innerHTML='';
+    slides.forEach((s,i)=>{
+      const div = document.createElement('div'); div.className='slide-card';
+      div.innerHTML = `<b>Slide ${i+1}</b><br>${s.background||'-'}<br><b>Teks besar:</b> ${s.teksBesar||'-'}<br><b>Teks kecil:</b> ${s.teksKecil||'-'}`;
+      wrap.appendChild(div);
+    });
+  }
+  async function addSlide(){
+    const t = state.tasks.find(x=>x.id===currentTaskId);
+    if(!t.slides) t.slides=[];
+    t.slides.push({background:document.getElementById('sBackground').value.trim(), teksBesar:document.getElementById('sBesar').value.trim(), teksKecil:document.getElementById('sKecil').value.trim()});
+    await saveState();
+    renderSlides(t.slides);
+    ['sBackground','sBesar','sKecil'].forEach(id=>document.getElementById(id).value='');
+  }
+  async function saveCaption(){
+    const t = state.tasks.find(x=>x.id===currentTaskId);
+    t.caption = {hook:document.getElementById('capHook').value.trim(), middle:document.getElementById('capMiddle').value.trim(), softSelling:document.getElementById('capSoft').value.trim(), cta:document.getElementById('capCta').value.trim()};
+    await saveState();
+  }
+
+  function renderRefImages(images){
+    const wrap = document.getElementById('briefImages'); wrap.innerHTML='';
+    images.forEach((src,i)=>{ const div=document.createElement('div'); div.className='thumb'; div.innerHTML = `<img src="${src}"><button class="rm" onclick="removeRefImage(${i})">&times;</button>`; wrap.appendChild(div); });
+  }
+  async function addRefImage(){
+    const inp = document.getElementById('refLinkInput'); const url = inp.value.trim();
+    if(!url) return;
+    const t = state.tasks.find(x=>x.id===currentTaskId);
+    if(!t.images) t.images=[];
+    t.images.push(url); await saveState(); renderRefImages(t.images); inp.value='';
+  }
+  async function removeRefImage(i){
+    const t = state.tasks.find(x=>x.id===currentTaskId);
+    t.images.splice(i,1); await saveState(); renderRefImages(t.images);
+  }
+
+  function renderComments(comments){
+    const wrap = document.getElementById('briefComments');
+    wrap.innerHTML = comments.length ? '' : '<div style="font-size:12px;color:var(--ink-soft);">Belum ada komentar.</div>';
+    comments.forEach(c=>{ const div=document.createElement('div'); div.className='comment'; div.innerHTML = `<span class="author">${c.author}</span> <span class="time">${c.time}</span><div>${c.text}</div>`; wrap.appendChild(div); });
+  }
+  async function addComment(){
+    const inp = document.getElementById('commentInput'); const text = inp.value.trim();
+    if(!text) return;
+    const t = state.tasks.find(x=>x.id===currentTaskId);
+    if(!t.comments) t.comments=[];
+    const roleLabel = {owner:'Owner', admin:'Admin', designer:'Desainer'}[currentUser.role];
+    t.comments.push({author:currentUser.name+' ('+roleLabel+')', text, time:new Date().toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})});
+    await saveState(); renderComments(t.comments); inp.value='';
+  }
+
+  function renderOps(){
+    renderOpsList('uploadList', state.ops.upload, 'Sudah diupload', 'Belum diupload');
+    renderOpsList('igList', state.ops.ig, 'Sudah dibalas', 'Belum dibalas');
+    renderOpsList('shopeeList', state.ops.shopee, 'Sudah dibalas', 'Belum dibalas');
+    renderStreak();
+  }
+  function canEditOps(){ return currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner'); }
+
+  function renderOpsList(elId, items, doneLabel, undoneLabel){
+    const wrap = document.getElementById(elId); wrap.innerHTML='';
+    const editable = canEditOps();
+    items.forEach(it=>{
+      const div = document.createElement('div'); div.className='opitem';
+      div.innerHTML = `<div class="txt">${it.text}<div class="who">${it.who}</div></div><button class="status-badge ${it.done?'selesai':'belum'}" style="${editable?'':'opacity:.55;cursor:not-allowed;'}">${it.done?doneLabel:undoneLabel}</button>`;
+      div.querySelector('button').onclick = async ()=>{
+        if(!editable){ alert('Hanya Admin/Owner yang bisa mengubah status ini.'); return; }
+        it.done=!it.done; await saveState(); renderOps(); renderDashboard();
+      };
+      wrap.appendChild(div);
+    });
+  }
+  function renderStreak(){
+    if(!state.ops.streak) state.ops.streak=[];
+    const total = daysInCurrentMonth();
+    const count = state.ops.streak.length;
+    document.getElementById('streakNum').textContent = count;
+    document.getElementById('streakBar').style.width = Math.min(100, (count/total)*100)+'%';
+    const done = state.ops.streak.includes(todayDay());
+    const btn = document.getElementById('streakBtn');
+    const editable = canEditOps();
+    btn.textContent = done ? '✅ Sudah hari ini' : (editable ? '+ Tandai hari ini' : '🔒 Khusus Admin/Owner');
+    btn.disabled = done || !editable;
+    btn.style.opacity = editable ? '1' : '.55';
+  }
+  async function markStreak(){
+    if(!canEditOps()){ alert('Hanya Admin/Owner yang bisa menandai ini.'); return; }
+    if(!state.ops.streak) state.ops.streak=[];
+    if(!state.ops.streak.includes(todayDay())) state.ops.streak.push(todayDay());
+    await saveState(); renderStreak();
+  }
+
+  function renderDashboard(){
+    const t = state.tasks;
+    const kpis = [
+      {num:t.length, label:'Total brief aktif'},
+      {num:t.filter(x=>x.status==='Selesai').length, label:'Selesai'},
+      {num:t.filter(x=>x.status==='Revisi').length, label:'Sedang direvisi'},
+      {num:t.filter(x=>x.status==='Disetujui').length, label:'Menunggu ditugaskan'}
+    ];
+    document.getElementById('kpiRow').innerHTML = kpis.map(k=>`<div class="kpi"><div class="num">${k.num}</div><div class="label">${k.label}</div></div>`).join('');
+    const attention = document.getElementById('attentionList');
+    const revisi = t.filter(x=>x.status==='Revisi'), disetujui = t.filter(x=>x.status==='Disetujui');
+    attention.innerHTML = (revisi.length===0 && disetujui.length===0) ? '<div class="empty-col">Tidak ada yang perlu perhatian.</div>' : '';
+    revisi.forEach(x=>{ attention.innerHTML += `<div class="opitem"><div class="txt">${x.title}<div class="who">Perlu revisi — ${x.assignee}</div></div></div>`; });
+    disetujui.forEach(x=>{ attention.innerHTML += `<div class="opitem"><div class="txt">${x.title}<div class="who">Belum ditugaskan ke Admin</div></div></div>`; });
+    const opsAtt = document.getElementById('opsAttentionList');
+    const belum = [...state.ops.upload.filter(x=>!x.done).map(x=>x.text+' — belum diupload'), ...state.ops.ig.filter(x=>!x.done).map(x=>x.text), ...state.ops.shopee.filter(x=>!x.done).map(x=>x.text)];
+    opsAtt.innerHTML = belum.length ? belum.map(x=>`<div class="opitem"><div class="txt">${x}</div></div>`).join('') : '<div class="empty-col">Semua sudah ditangani.</div>';
+  }
+
+  async function saveReport(){
+    if(!canEditOps()){ alert('Hanya Admin/Owner yang bisa mengisi laporan ini.'); return; }
+    state.report = {
+      keranjang:document.getElementById('rKeranjang').value, terjual:document.getElementById('rTerjual').value, ulasan:document.getElementById('rUlasan').value,
+      komentar:document.getElementById('rKomentar').value, dm:document.getElementById('rDm').value, folAwal:document.getElementById('rFolAwal').value, folAkhir:document.getElementById('rFolAkhir').value,
+      catatan:document.getElementById('rCatatan').value
+    };
+    await saveState(); renderReportSummary();
+  }
+  function renderReportSummary(){
+    if(!state || !state.report) return;
+    const r = state.report;
+    if(!r.keranjang && !r.terjual && !r.catatan) { document.getElementById('reportSummary').innerHTML=''; return; }
+    const fol = (r.folAkhir - r.folAwal) || 0;
+    document.getElementById('reportSummary').innerHTML = `
+      <div class="ops-panel">
+        <h2>Ringkasan tersimpan</h2>
+        <p style="font-size:13px; line-height:1.7;">
+        🛍️ ${r.terjual||0} produk terjual dari ${r.keranjang||0} yang masuk keranjang, ${r.ulasan||0} ulasan masuk.<br>
+        📸 ${r.komentar||0} komentar & ${r.dm||0} DM bulan ini, follower ${fol>=0?'+':''}${fol}.<br>
+        📝 ${r.catatan || '(belum ada catatan)'}
+        </p>
+      </div>`;
+  }
+</script>
+</body>
+</html>
