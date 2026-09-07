@@ -115,6 +115,8 @@
   .comment{padding:9px 0; border-bottom:1px solid var(--line); font-size:12.5px;}
   .comment .author{font-weight:700; font-size:11.5px;} .comment .time{color:var(--ink-soft); font-size:10.5px;}
   .status-select{padding:7px 10px; border:1.5px solid var(--line); border-radius:999px; font-size:12px; font-weight:600;}
+  .btn-danger{background:var(--brick-soft); color:var(--brick); border:none; padding:10px 16px; border-radius:999px; font-size:12.5px; font-weight:700; cursor:pointer; width:100%; margin-top:6px;}
+  .btn-danger:hover{background:var(--brick); color:#fff;}
   .slide-card{background:var(--paper); border-radius:12px; padding:10px 12px; margin-bottom:8px; font-size:12.5px;}
   .slide-card b{font-size:11px; color:var(--ink-soft);}
   .date-badge{display:inline-flex; align-items:center; gap:6px; background:var(--amber-soft); color:var(--amber); padding:6px 12px; border-radius:999px; font-weight:700; font-size:12.5px; margin-bottom:14px;}
@@ -205,7 +207,7 @@
         <div class="kpi-row" id="kpiRow"></div>
         <div class="ops-grid">
           <div class="ops-panel"><h2>Butuh perhatian</h2><div class="opslist" id="attentionList"></div></div>
-          <div class="ops-panel"><h2>Belum dibalas / diupload</h2><div class="opslist" id="opsAttentionList"></div></div>
+          <div class="ops-panel"><h2>Menunggu diupload Admin</h2><div class="opslist" id="opsAttentionList"></div></div>
         </div>
       </section>
 
@@ -303,7 +305,6 @@
 <div class="overlay" id="briefOverlay">
   <div class="modal">
     <button class="close" onclick="closeBrief()">&times;</button>
-    <button class="close" id="deleteTaskBtn" style="right:54px; color:var(--brick);" onclick="deleteTask()" title="Hapus brief ini">🗑️</button>
     <span class="type-tag" id="briefType">Tipe</span>
     <h3 id="briefTitle">Judul Brief</h3>
     <div class="field">
@@ -361,6 +362,7 @@
       <div id="briefComments"></div>
       <div class="comment-add" style="margin-top:8px;"><input type="text" id="commentInput" placeholder="Tulis komentar..."><button onclick="addComment()">Kirim</button></div>
     </div>
+    <button class="btn-danger" id="deleteTaskBtn" onclick="deleteTask()">🗑️ Hapus brief ini</button>
   </div>
 </div>
 
@@ -415,13 +417,7 @@
         {id:'t7', title:'Konten Edukasi Baru', type:'Feed', assignee:'Dimas', status:'Disetujui', deadline:'Menunggu ditugaskan', format:'Carousel', text:'Sudah disetujui Owner.', slides:[], caption:{hook:'',middle:'',softSelling:'',cta:''}, images:[], comments:[]},
         {id:'t8', title:'Tips Perawatan (batch lalu)', type:'Feed', assignee:'Dimas', status:'Selesai', deadline:'Selesai', format:'Carousel', text:'-', slides:[], caption:{hook:'',middle:'',softSelling:'',cta:''}, images:[], comments:[]}
       ],
-      ops:{
-        upload:[
-          {id:'u1', text:'Promo Ongkir Gratis (Story)', who:'Desain oleh Riko · ditugaskan Owner', done:false},
-          {id:'u2', text:'Tips Perawatan Produk (Feed)', who:'Desain oleh Dimas · ditugaskan Owner', done:true}
-        ],
-        streak:[]
-      },
+      ops:{ streak:[] },
       report:{periode:'', pelapor:'', keranjang:'', terjual:'', ulasan:'', komentar:'', dm:'', folAwal:'', folAkhir:'', catatan:''},
       security:{ownerPin:'', adminPin:'', designerPin:''}
     };
@@ -629,7 +625,7 @@
       document.getElementById('mDepan').textContent = t.bagianDepan||'-';
       document.getElementById('mBelakang').textContent = t.bagianBelakang||'-';
     }
-    document.getElementById('deleteTaskBtn').style.display = (currentUser.role === 'designer') ? 'none' : 'flex';
+    document.getElementById('deleteTaskBtn').style.display = (currentUser.role === 'designer') ? 'none' : 'block';
     renderRefImages(t.images||[]);
     renderComments(t.comments||[]);
     document.getElementById('briefOverlay').classList.add('show');
@@ -707,24 +703,31 @@
   }
 
   function renderOps(){
-    renderOpsList('uploadList', state.ops.upload, 'Sudah diupload', 'Belum diupload');
+    renderUploadList();
     renderStreak();
   }
-  function canEditOps(){ return currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner'); }
-
-  function renderOpsList(elId, items, doneLabel, undoneLabel){
-    const wrap = document.getElementById(elId); wrap.innerHTML='';
+  function renderUploadList(){
+    const wrap = document.getElementById('uploadList');
+    const pending = state.tasks.filter(t=>t.status==='Ditugaskan ke Admin');
     const editable = canEditOps();
-    items.forEach(it=>{
+    wrap.innerHTML = pending.length ? '' : '<div class="empty-col">Belum ada konten yang ditugaskan ke Admin saat ini.</div>';
+    pending.forEach(t=>{
       const div = document.createElement('div'); div.className='opitem';
-      div.innerHTML = `<div class="txt">${it.text}<div class="who">${it.who}</div></div><button class="status-badge ${it.done?'selesai':'belum'}" style="${editable?'':'opacity:.55;cursor:not-allowed;'}">${it.done?doneLabel:undoneLabel}</button>`;
+      div.innerHTML = `
+        <div class="txt">${t.title} (${TYPE_LABEL[t.type]})<div class="who">Desain oleh ${t.assignee||'-'} · ditugaskan Owner</div></div>
+        <button class="status-badge belum" style="${editable?'':'opacity:.55;cursor:not-allowed;'}">Tandai sudah diupload</button>
+      `;
+      div.querySelector('.txt').onclick = ()=>openBrief(t.id);
       div.querySelector('button').onclick = async ()=>{
-        if(!editable){ alert('Hanya Admin/Owner yang bisa mengubah status ini.'); return; }
-        it.done=!it.done; await saveState(); renderOps(); renderDashboard();
+        if(!editable){ alert('Hanya Admin/Owner yang bisa menandai ini.'); return; }
+        t.status = 'Selesai';
+        await saveState(); renderAll();
       };
       wrap.appendChild(div);
     });
   }
+  function canEditOps(){ return currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner'); }
+
   function renderStreak(){
     if(!state.ops.streak) state.ops.streak=[];
     const total = daysInCurrentMonth();
@@ -760,7 +763,7 @@
     revisi.forEach(x=>{ attention.innerHTML += `<div class="opitem"><div class="txt">${x.title}<div class="who">Perlu revisi — ${x.assignee}</div></div></div>`; });
     disetujui.forEach(x=>{ attention.innerHTML += `<div class="opitem"><div class="txt">${x.title}<div class="who">Belum ditugaskan ke Admin</div></div></div>`; });
     const opsAtt = document.getElementById('opsAttentionList');
-    const belum = state.ops.upload.filter(x=>!x.done).map(x=>x.text+' — belum diupload');
+    const belum = state.tasks.filter(x=>x.status==='Ditugaskan ke Admin').map(x=>x.title+' — belum diupload');
     opsAtt.innerHTML = belum.length ? belum.map(x=>`<div class="opitem"><div class="txt">${x}</div></div>`).join('') : '<div class="empty-col">Semua sudah ditangani.</div>';
   }
 
