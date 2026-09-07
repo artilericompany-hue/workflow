@@ -612,36 +612,42 @@
     return d.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
   }
   async function submitTask(){
-    const title = document.getElementById('fTitle').value.trim();
-    if(!title){ alert('Judul brief wajib diisi.'); return; }
-    const type = document.getElementById('fType').value;
-    const base = {
-      id:'t'+Date.now(), title, type,
-      assignee:document.getElementById('fAssignee').value.trim() || 'Belum ditugaskan',
-      status:'Brief Baru',
-      deadline:document.getElementById('fDeadline').value ? formatDateID(document.getElementById('fDeadline').value) : '-',
-      images:[], comments:[]
-    };
-    if(type==='Feed'){
-      base.format = document.getElementById('fFormat').value.trim() || '-';
-      base.text = document.getElementById('fText').value.trim() || '-';
-      base.slides = []; base.caption = {hook:'',middle:'',softSelling:'',cta:''};
-    } else if(type==='Story'){
-      base.tanggal = document.getElementById('fTanggal').value ? formatDateID(document.getElementById('fTanggal').value) : '-';
-      base.momentum = document.getElementById('fMomentum').value.trim() || '-';
-      base.visual = document.getElementById('fVisual').value.trim() || '-';
-    } else {
-      base.bagianDepan = document.getElementById('fDepan').value.trim() || '-';
-      base.bagianBelakang = document.getElementById('fBelakang').value.trim() || '-';
-      base.depanImages = [...formImgs.depan];
-      base.belakangImages = [...formImgs.belakang];
+    try{
+      const title = document.getElementById('fTitle').value.trim();
+      if(!title){ alert('Judul brief wajib diisi.'); return; }
+      if(!state || !state.tasks){ alert('Data workspace belum selesai dimuat. Tunggu 2-3 detik lalu coba lagi.'); return; }
+      const type = document.getElementById('fType').value;
+      const base = {
+        id:'t'+Date.now(), title, type,
+        assignee:document.getElementById('fAssignee').value.trim() || 'Belum ditugaskan',
+        status:'Brief Baru',
+        deadline:document.getElementById('fDeadline').value ? formatDateID(document.getElementById('fDeadline').value) : '-',
+        images:[], comments:[]
+      };
+      if(type==='Feed'){
+        base.format = document.getElementById('fFormat').value.trim() || '-';
+        base.text = document.getElementById('fText').value.trim() || '-';
+        base.slides = []; base.caption = {hook:'',middle:'',softSelling:'',cta:''};
+      } else if(type==='Story'){
+        base.tanggal = document.getElementById('fTanggal').value ? formatDateID(document.getElementById('fTanggal').value) : '-';
+        base.momentum = document.getElementById('fMomentum').value.trim() || '-';
+        base.visual = document.getElementById('fVisual').value.trim() || '-';
+      } else {
+        base.bagianDepan = document.getElementById('fDepan').value.trim() || '-';
+        base.bagianBelakang = document.getElementById('fBelakang').value.trim() || '-';
+        base.depanImages = [...formImgs.depan];
+        base.belakangImages = [...formImgs.belakang];
+      }
+      state.tasks.unshift(base);
+      await saveState();
+      ['fTitle','fAssignee','fDeadline','fFormat','fText','fTanggal','fMomentum','fVisual','fDepan','fBelakang'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+      formImgs = {depan:[], belakang:[]};
+      renderFormImgs('depan'); renderFormImgs('belakang');
+      toggleForm(); renderAll();
+    }catch(e){
+      console.error('Gagal menyimpan brief', e);
+      alert('Gagal menyimpan brief: ' + e.message);
     }
-    state.tasks.unshift(base);
-    await saveState();
-    ['fTitle','fAssignee','fDeadline','fFormat','fText','fTanggal','fMomentum','fVisual','fDepan','fBelakang'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-    formImgs = {depan:[], belakang:[]};
-    renderFormImgs('depan'); renderFormImgs('belakang');
-    toggleForm(); renderAll();
   }
 
   function openBrief(id){
