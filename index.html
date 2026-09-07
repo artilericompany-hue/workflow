@@ -433,10 +433,19 @@
     };
   }
 
+  function normalizeState(s){
+    if(!s || typeof s !== 'object') s = {};
+    if(!Array.isArray(s.tasks)) s.tasks = [];
+    if(!s.ops || typeof s.ops !== 'object') s.ops = {};
+    if(!Array.isArray(s.ops.streak)) s.ops.streak = [];
+    if(!s.report) s.report = {periode:'', pelapor:'', keranjang:'', terjual:'', ulasan:'', komentar:'', dm:'', folAwal:'', folAkhir:'', catatan:''};
+    if(!s.security) s.security = {ownerPin:'', adminPin:'', designerPin:''};
+    return s;
+  }
   async function loadState(){
     try{
       const snap = await db.ref('studioflowState').once('value');
-      if(snap.exists()) return snap.val();
+      if(snap.exists()) return normalizeState(snap.val());
       const seed = getSeedState();
       await db.ref('studioflowState').set(seed);
       return seed;
@@ -450,7 +459,7 @@
   // Listener real-time: begitu ada yang berubah di Firebase (dari device manapun), tampilan ikut update otomatis.
   // Field yang sedang diketik (activeElement) dilindungi supaya tidak ketimpa saat orang lain menyimpan.
   db.ref('studioflowState').on('value', (snap)=>{
-    if(snap.exists()){ state = snap.val(); }
+    if(snap.exists()){ state = normalizeState(snap.val()); }
     if(!currentUser) return;
     const modalOpen = document.getElementById('briefOverlay').classList.contains('show');
     const formOpen = document.getElementById('taskForm').classList.contains('show');
