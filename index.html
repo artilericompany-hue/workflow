@@ -155,21 +155,28 @@
   <div class="gate-card">
     <div class="gate-emoji">✨</div>
     <h2>Masuk ke Studio.Flow</h2>
-    <p>Pilih peranmu untuk mulai. Tidak perlu password — cukup untuk tim internal.</p>
-    <div class="field-row"><label>Nama</label><input type="text" id="gateName" placeholder="mis. Riko"></div>
+    <p>Masuk pakai akun Google kamu — tidak perlu pilih nama atau PIN lagi.</p>
+    <button onclick="loginWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#3c4043;border:1.5px solid var(--line);">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.3-5.5l-6.6-5.6C29.6 34.5 26.9 35.5 24 35.5c-5.2 0-9.6-3.3-11.3-8l-6.6 5.1C9.6 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.7l6.6 5.6C41.5 36 44 30.5 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
+      Masuk dengan Google
+    </button>
+  </div>
+</div>
+
+<div class="gate" id="roleGate" style="display:none;">
+  <div class="gate-card">
+    <div class="gate-emoji">👋</div>
+    <h2>Halo, <span id="newUserName"></span>!</h2>
+    <p>Ini pertama kalinya kamu masuk. Pilih peranmu di tim — lain kali sudah diingat otomatis.</p>
     <div class="field-row">
       <label>Peran</label>
-      <select id="gateRole">
+      <select id="newUserRole">
         <option value="owner">Owner</option>
         <option value="admin">Admin Sosmed & Shopee</option>
         <option value="designer">Desainer Grafis</option>
       </select>
     </div>
-    <div class="field-row">
-      <label>PIN peran (kosongkan jika Owner belum mengatur PIN)</label>
-      <input type="password" id="gatePin" placeholder="••••">
-    </div>
-    <button onclick="loginUser()">Masuk ke Workspace</button>
+    <button onclick="confirmRole()">Mulai Pakai Workspace</button>
   </div>
 </div>
 
@@ -195,14 +202,9 @@
       <section id="view-dashboard" class="view active">
         <div class="view-head"><div><h1>Ringkasan</h1><p>Dihitung langsung dari Papan Tugas & Tugas Admin.</p></div></div>
         <div class="ops-panel" id="pinSettingsPanel" style="display:none;">
-          <h2>🔐 Atur PIN Tim (khusus Owner)</h2>
-          <div class="sub">Opsional — tambah lapisan verifikasi saat memilih peran login. Bagikan tiap PIN hanya ke orang yang tepat lewat chat pribadi.</div>
-          <div class="mini-grid" style="grid-template-columns:1fr 1fr 1fr;">
-            <input id="pinOwner" placeholder="PIN Owner">
-            <input id="pinAdmin" placeholder="PIN Admin">
-            <input id="pinDesigner" placeholder="PIN Desainer">
-          </div>
-          <button class="btn-small" onclick="savePins()">Simpan PIN</button>
+          <h2>👥 Anggota Tim (khusus Owner)</h2>
+          <div class="sub">Ubah peran siapa saja di sini kalau ada yang salah pilih saat login pertama kali.</div>
+          <div class="opslist" id="teamList"></div>
         </div>
         <div class="kpi-row" id="kpiRow"></div>
         <div class="ops-grid">
@@ -378,6 +380,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyAk6rpvGQAQK8Xam5MZovTTqwBwjtSTfvw",
@@ -390,6 +393,7 @@
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
+  const auth = firebase.auth();
 </script>
 <script>
   const COLUMNS = ['Brief Baru','Dikerjakan','Review','Revisi','Disetujui','Ditugaskan ke Admin','Selesai'];
@@ -466,24 +470,72 @@
     if(!modalOpen && !formOpen) renderAll();
   }, (err)=>{ console.error('Firebase listener error', err); });
 
-  function loginUser(){
-    const name = document.getElementById('gateName').value.trim() || 'Tanpa Nama';
-    const role = document.getElementById('gateRole').value;
-    const pinInput = document.getElementById('gatePin').value.trim();
-    const pinKey = {owner:'ownerPin', admin:'adminPin', designer:'designerPin'}[role];
-    const requiredPin = (state && state.security) ? state.security[pinKey] : '';
-    if(requiredPin && requiredPin !== pinInput){
-      alert('PIN salah untuk peran ini. Tanya Owner kalau lupa PIN-nya.');
-      return;
+  function loginWithGoogle(){
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(err=>{
+      console.error('Gagal login Google', err);
+      alert('Gagal masuk dengan Google: ' + err.message);
+    });
+    // Hasil sukses ditangani otomatis oleh onAuthStateChanged di bawah.
+  }
+
+  let pendingGoogleUser = null;
+
+  function handleSignedInUser(user){
+    const emailKey = user.email.replace(/\./g, ',');
+    db.ref('teamMembers/'+emailKey).once('value').then(snap=>{
+      if(snap.exists()){
+        const member = snap.val();
+        currentUser = {name: member.name || user.displayName, email: user.email, role: member.role};
+        enterApp();
+      } else {
+        pendingGoogleUser = user;
+        document.getElementById('gate').style.display = 'none';
+        document.getElementById('roleGate').style.display = 'flex';
+        document.getElementById('newUserName').textContent = user.displayName;
+      }
+    }).catch(err=>{
+      console.error('Gagal cek anggota tim', err);
+      alert('Gagal memeriksa data tim: ' + err.message);
+    });
+  }
+
+  async function confirmRole(){
+    const role = document.getElementById('newUserRole').value;
+    const user = pendingGoogleUser;
+    if(!user) return;
+    const emailKey = user.email.replace(/\./g, ',');
+    try{
+      await db.ref('teamMembers/'+emailKey).set({name: user.displayName, email: user.email, role});
+      currentUser = {name: user.displayName, email: user.email, role};
+      document.getElementById('roleGate').style.display = 'none';
+      enterApp();
+    }catch(e){
+      console.error('Gagal menyimpan peran', e);
+      alert('Gagal menyimpan peran: ' + e.message);
     }
-    currentUser = {name, role};
-    document.getElementById('gate').style.display='none';
-    document.getElementById('app').style.display='flex';
-    const roleLabel = {owner:'Owner', admin:'Admin Sosmed & Shopee', designer:'Desainer Grafis'}[role];
-    document.getElementById('whoBadge').textContent = name+' · '+roleLabel;
+  }
+
+  function enterApp(){
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('roleGate').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    const roleLabel = {owner:'Owner', admin:'Admin Sosmed & Shopee', designer:'Desainer Grafis'}[currentUser.role];
+    document.getElementById('whoBadge').textContent = currentUser.name+' · '+roleLabel;
     init();
   }
-  function logoutUser(){ document.getElementById('gate').style.display='flex'; document.getElementById('app').style.display='none'; }
+
+  function logoutUser(){
+    auth.signOut();
+    currentUser = null;
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('roleGate').style.display = 'none';
+    document.getElementById('gate').style.display = 'flex';
+  }
+
+  auth.onAuthStateChanged(user=>{
+    if(user) handleSignedInUser(user);
+  });
 
   // State akan terisi otomatis oleh listener Firebase di atas begitu koneksi tersambung.
 
@@ -515,25 +567,42 @@
   }
   async function refreshNow(){ state = await loadState(); renderAll(); }
 
-  function renderAll(){ renderBoard(); renderOps(); renderDashboard(); renderReportSummary(); renderPinSettings(); }
+  function renderAll(){ renderBoard(); renderOps(); renderDashboard(); renderReportSummary(); renderTeamSettings(); }
 
-  function renderPinSettings(){
+  async function renderTeamSettings(){
     const panel = document.getElementById('pinSettingsPanel');
     if(!currentUser || currentUser.role !== 'owner'){ panel.style.display='none'; return; }
     panel.style.display='block';
-    if(!state.security) state.security = {ownerPin:'', adminPin:'', designerPin:''};
-    const oInp=document.getElementById('pinOwner'), aInp=document.getElementById('pinAdmin'), dInp=document.getElementById('pinDesigner');
-    if(document.activeElement!==oInp) oInp.value = state.security.ownerPin || '';
-    if(document.activeElement!==aInp) aInp.value = state.security.adminPin || '';
-    if(document.activeElement!==dInp) dInp.value = state.security.designerPin || '';
-  }
-  async function savePins(){
-    if(!state.security) state.security = {};
-    state.security.ownerPin = document.getElementById('pinOwner').value.trim();
-    state.security.adminPin = document.getElementById('pinAdmin').value.trim();
-    state.security.designerPin = document.getElementById('pinDesigner').value.trim();
-    await saveState();
-    alert('PIN tersimpan. Bagikan ke orang yang tepat lewat chat pribadi.');
+    try{
+      const snap = await db.ref('teamMembers').once('value');
+      const members = snap.val() || {};
+      const wrap = document.getElementById('teamList');
+      wrap.innerHTML = '';
+      const keys = Object.keys(members);
+      if(keys.length === 0){ wrap.innerHTML = '<div class="empty-col">Belum ada anggota tim yang login.</div>'; return; }
+      keys.forEach(key=>{
+        const m = members[key];
+        const div = document.createElement('div'); div.className='opitem';
+        div.innerHTML = `
+          <div class="txt">${m.name}<div class="who">${m.email}</div></div>
+          <select class="status-select"></select>
+        `;
+        const sel = div.querySelector('select');
+        ['owner','admin','designer'].forEach(r=>{
+          const opt = document.createElement('option');
+          opt.value = r; opt.textContent = {owner:'Owner', admin:'Admin', designer:'Desainer'}[r];
+          if(m.role === r) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.onchange = async ()=>{
+          await db.ref('teamMembers/'+key+'/role').set(sel.value);
+          if(currentUser.email === m.email) currentUser.role = sel.value;
+          alert('Peran '+m.name+' diubah jadi '+sel.value+'.');
+          renderAll();
+        };
+        wrap.appendChild(div);
+      });
+    }catch(e){ console.error('Gagal memuat anggota tim', e); }
   }
 
   function updateFormExtra(){
